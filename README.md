@@ -30,7 +30,7 @@ regarding potential commercial exploitation of my work by 3rd parties.)
 not used (see temperature sensor, etc), no frequency hopping, no EZMAC, no wake-up timer,
 no support for power saving sleep modes, etc. 
 * Has only been tested with ATmega128, ATmega328P.
-* The Sloeber 3.0 IDE has been used duriung development. The code might not work with old Arduino IDEs and
+* The Sloeber 3.0 IDE has been used during development. The code might not work with old Arduino IDEs and
 no effort whatsoever has been made in that regard.
 
 
