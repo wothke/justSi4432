@@ -13,9 +13,9 @@
 // settings are not actually used.
 #ifdef USE_SAMPLE_CONFIG
 static uint8_t SAMPLE_CONFIG[] =
-	//     ++++  ++++    <-- clock recovery settings         ->          <-- OOK     ->  ----  ----  ----                                            ++++  ++++  ++++
-	// 1c,   1d,   1e,   1f,   20,   21,   22,   23,   24,   25,   2a,   2c,   2d,   2e,   30,   32,   33,   58,   69,   6e,   6f,   70,   71,   72,   75,   76,   77
-	{0x1b, 0x44, 0x0a, 0x03, 0x41, 0x60, 0x27, 0x52, 0x00, 0x07, 0x21, 0x2a, 0x08, 0x2a, 0xad, 0x8c, 0x02, 0x80, 0x60, 0x13, 0xa9, 0x2c, 0x22, 0x3a, 0x57, 0x00, 0x00};
+//     ++++  ++++    <-- clock recovery settings         ->          <-- OOK     ->  ----  ----  ----                                            ++++  ++++  ++++
+// 1c,   1d,   1e,   1f,   20,   21,   22,   23,   24,   25,   2a,   2c,   2d,   2e,   30,   32,   33,   58,   69,   6e,   6f,   70,   71,   72,   75,   76,   77
+{0x1b, 0x44, 0x0a, 0x03, 0x41, 0x60, 0x27, 0x52, 0x00, 0x07, 0x21, 0x2a, 0x08, 0x2a, 0xad, 0x8c, 0x02, 0x80, 0x60, 0x13, 0xa9, 0x2c, 0x22, 0x3a, 0x57, 0x00, 0x00};
 #endif
 
 
@@ -41,9 +41,9 @@ Si4432_Transceiver* Si4432_Transceiver::_singleton = 0;				// only one instance 
 Si4432_Transceiver::Si4432_Transceiver(uint8_t slaveSelectPin, uint8_t interruptPin)
 {
 	_spi= new JustSPI(slaveSelectPin);
-    _interruptNumber= digitalPinToInterrupt(interruptPin);	// other platforms may need to do this differently
+	_interruptNumber= digitalPinToInterrupt(interruptPin);	// other platforms may need to do this differently
 
-    resetRxState();
+	resetRxState();
 
 	_txBufLen = 0;
 	_txBufProgressIdx = 0;
@@ -52,47 +52,47 @@ Si4432_Transceiver::Si4432_Transceiver(uint8_t slaveSelectPin, uint8_t interrupt
 
 bool Si4432_Transceiver::passAssertions() {
 #ifdef USE_SAMPLE_CONFIG
-    if (sizeof(RegisterSettings) != sizeof(SAMPLE_CONFIG)) {
-    	return false;
-    }
+	if (sizeof(RegisterSettings) != sizeof(SAMPLE_CONFIG)) {
+		return false;
+	}
 #endif
 	if (_singleton != NULL) {
 		return false;	// cannot not be used more than once
 	} else {
-	    _singleton = this;
+		_singleton = this;
 	}
 
-    uint8_t deviceType = _spi->read(Si4432_DEVICE_TYPE);
-    if ( (deviceType != DEVICE_TYPE_RX_TRX) && (deviceType != DEVICE_TYPE_TX))  {
-    	return false;
-    }
+	uint8_t deviceType = _spi->read(Si4432_DEVICE_TYPE);
+	if ( (deviceType != DEVICE_TYPE_RX_TRX) && (deviceType != DEVICE_TYPE_TX))  {
+		return false;
+	}
 
-    uint8_t deviceVersion = _spi->read(Si4432_DEVICE_VERSION);
-    if (deviceVersion != VERSION_Si4432B) {
-    	return false;
-    }
-    return true;
+	uint8_t deviceVersion = _spi->read(Si4432_DEVICE_VERSION);
+	if (deviceVersion != VERSION_Si4432B) {
+		return false;
+	}
+	return true;
 }
 
 
 bool Si4432_Transceiver::init(const RegisterSettings *config, uint8_t address, boolean addressCheck) {
-    _spi->begin();
+	_spi->begin();
 
-    if (!passAssertions()) return false;
+	if (!passAssertions()) return false;
 
-    resetRegisters();
+	resetRegisters();
 
-    setStateIdle();
+	setStateIdle();
 
 #ifdef USE_SAMPLE_CONFIG
-    config=  (config != NULL) ? config : (const RegisterSettings*)SAMPLE_CONFIG;
+	config=  (config != NULL) ? config : (const RegisterSettings*)SAMPLE_CONFIG;
 #endif
 
-    setupRegisters(config, address, addressCheck);
+	setupRegisters(config, address, addressCheck);
 
-    startInterruptHandler();
+	startInterruptHandler();
 
-    return true;
+	return true;
 }
 
 void Si4432_Transceiver::setupRegisters(const RegisterSettings *config, uint8_t address, boolean addressCheck) {
@@ -101,45 +101,45 @@ void Si4432_Transceiver::setupRegisters(const RegisterSettings *config, uint8_t 
 	_spi->writeBlock(Si4432_IF_FILTER_BANDWIDTH,       &config->_1C, 10);
 	_spi->write(Si4432_AFC_LIMITER,                    config->_2A);
 	_spi->writeBlock(Si4432_OOK_COUNTER_VALUE_1,       &config->_2C, 3);
-    _spi->write(Si4432_RESERVED_58,                    config->_58);
+	_spi->write(Si4432_RESERVED_58,                    config->_58);
 	_spi->write(Si4432_AGC_OVERRIDE_1,                 config->_69);
 	_spi->writeBlock(Si4432_TX_DATA_RATE_1,            &config->_6E, 5);
 	_spi->writeBlock(Si4432_FREQUENCY_BAND_SELECT,     &config->_75, 3);
 
 	// settings specific to this implementation:
 
-		// note: there seem to be devices where this would need to be reversed
+	// note: there seem to be devices where this would need to be reversed
 	_spi->write(Si4432_GPIO_CONFIGURATION_0, GPIO_TX_STATE_OUTPUT);
 	_spi->write(Si4432_GPIO_CONFIGURATION_1, GPIO_RX_STATE_OUTPUT);
 
-		// same as default - just to be real sure the constants are in sync
+	// same as default - just to be real sure the constants are in sync
 	_spi->write(Si4432_TX_FIFO_CONTROL_2, TXFAETHR);
 	_spi->write(Si4432_RX_FIFO_CONTROL,  RXAFTHR);
 
-    setTxPower(TXOUT_TXPOW_11DBM);	// with the crappy default antenna, higher is probably better
+	setTxPower(TXOUT_TXPOW_11DBM);	// with the crappy default antenna, higher is probably better
 
 
-		// for compatibility with RadioHead library the same message format
-		// is used here (even though this implementation does not care for most
-		// of the headers).. but having some already functional library
-		// as a sparing partner makes testing so much easier :-)
+	// for compatibility with RadioHead library the same message format
+	// is used here (even though this implementation does not care for most
+	// of the headers).. but having some already functional library
+	// as a sparing partner makes testing so much easier :-)
 
-		// format: 4-byte preamble, 2-byte sync, 4-byte header, 1-byte payload length,
-		// 0-255 bytes payload, 2-byte CRC (using header, length and payload)
+	// format: 4-byte preamble, 2-byte sync, 4-byte header, 1-byte payload length,
+	// 0-255 bytes payload, 2-byte CRC (using header, length and payload)
 
-    uint8_t  poly= DAC_CRC_CRC_16_IBM;	// except for compatibility anything could be used here
-    _spi->write(Si4432_DATA_ACCESS_CONTROL, DAC_ENPACRX | DAC_ENPACTX | DAC_ENCRC | poly);
+	uint8_t  poly= DAC_CRC_CRC_16_IBM;	// except for compatibility anything could be used here
+	_spi->write(Si4432_DATA_ACCESS_CONTROL, DAC_ENPACRX | DAC_ENPACTX | DAC_ENCRC | poly);
 
-    uint16_t preambleLen= 8; 	// in nibbles.. max is 512
+	uint16_t preambleLen= 8; 	// in nibbles.. max is 512
 
-    _spi->write(Si4432_HEADER_CONTROL_1, HC_BCEN_BYTE_3 | HC_HDCH_BYTE_3);	// enable header check (destination address)
-    _spi->write(Si4432_HEADER_CONTROL_2, HC_HDLEN_3_2_1_0 | HC_SYNCLEN_3_2 | ((preambleLen & 0x100) ? HC_PREALEN_BIT8 : 0));
+	_spi->write(Si4432_HEADER_CONTROL_1, HC_BCEN_BYTE_3 | HC_HDCH_BYTE_3);	// enable header check (destination address)
+	_spi->write(Si4432_HEADER_CONTROL_2, HC_HDLEN_3_2_1_0 | HC_SYNCLEN_3_2 | ((preambleLen & 0x100) ? HC_PREALEN_BIT8 : 0));
 	_spi->write(Si4432_PREAMBLE_LENGTH, preambleLen & 0xff);
 
 	_spi->write(Si4432_CHECK_HEADER_3, address);	// // header byte is used for the "destination address" check
-    _spi->write(Si4432_HEADER_ENABLE_3, addressCheck ? 0xff : 0x00); // bit-mask limits what it actually checked
+	_spi->write(Si4432_HEADER_ENABLE_3, addressCheck ? 0xff : 0x00); // bit-mask limits what it actually checked
 
-    uint8_t sync[] = { 0x2D, 0xD4 };			// default from Excel sheet
+	uint8_t sync[] = { 0x2D, 0xD4 };			// default from Excel sheet
 	_spi->writeBlock(Si4432_SYNC_WORD_3, sync, sizeof(sync));
 }
 
@@ -156,7 +156,7 @@ void Si4432_Transceiver::resetRegisters() {
 }
 
 uint8_t Si4432_Transceiver::getDeviceStatus() {
-    return _spi->read(Si4432_DEVICE_STATUS);
+	return _spi->read(Si4432_DEVICE_STATUS);
 }
 
 void Si4432_Transceiver::clearRxTxFIFO() {
@@ -169,7 +169,7 @@ void Si4432_Transceiver::clearRxFIFO() {
 }
 
 boolean Si4432_Transceiver::setAFCLimiter(float center, float pullInRange) {
-    // Auto-frequency calibration (see Si4432 registers.pdf page 30ff)
+	// Auto-frequency calibration (see Si4432 registers.pdf page 30ff)
 	// AFC_pull_in_range = ±AFCLimiter[7:0] x (hbsel+1) x 625 Hz
 	// i.e. max is (255*625=0.159375MHz or 0.318750MHz)
 
@@ -181,10 +181,10 @@ boolean Si4432_Transceiver::setAFCLimiter(float center, float pullInRange) {
 		return false;
 	}
 
-    uint8_t afcLimiter=  pullInRange * 1000000.0 / (hbsel ? 1250.0 : 625.0);
-    _spi->write(Si4432_AFC_LIMITER, afcLimiter);
+	uint8_t afcLimiter=  pullInRange * 1000000.0 / (hbsel ? 1250.0 : 625.0);
+	_spi->write(Si4432_AFC_LIMITER, afcLimiter);
 
-    return !(getDeviceStatus() & STATUS_FREQERR);
+	return !(getDeviceStatus() & STATUS_FREQERR);
 }
 
 bool Si4432_Transceiver::setFrequency(float center, float afcPullInRange) {
@@ -199,23 +199,23 @@ bool Si4432_Transceiver::setFrequency(float center, float afcPullInRange) {
 	// fcarrier = (fb+24+fc/64000) x 10 x (hbsel+1)  [MHz],
 	// where parameters fc(16-bit), fo(16-bit), fb(5-bit) and hbsel come from registers 73h–77h."
 
-    // frequency band selection: see table on Si4430-31-32.pdf page 26:
+	// frequency band selection: see table on Si4430-31-32.pdf page 26:
 	uint8_t hbsel= (center >= (MAX_FREQ/2)) & 0x1;	// FREQBAND_HBSEL (480-960)
-    float t=  center / ((hbsel+1) * 10.0);
-    float n=  floor(t);
+	float t=  center / ((hbsel+1) * 10.0);
+	float n=  floor(t);
 
-    uint8_t fbsel = hbsel ? (FREQBAND_SBSEL |FREQBAND_HBSEL) : FREQBAND_SBSEL;	// use of FREQBAND_SBSEL is recommended
-    fbsel |= ((uint8_t)n - 24);	// // fb: 0..23
+	uint8_t fbsel = hbsel ? (FREQBAND_SBSEL |FREQBAND_HBSEL) : FREQBAND_SBSEL;	// use of FREQBAND_SBSEL is recommended
+	fbsel |= ((uint8_t)n - 24);	// // fb: 0..23
 
-    // fc= (center / ((hbsel+1) * 10)-n)*64000, i.e.  fc= (t-n)*64000
-    uint16_t fc = (t - n) * 64000;
+	// fc= (center / ((hbsel+1) * 10)-n)*64000, i.e.  fc= (t-n)*64000
+	uint16_t fc = (t - n) * 64000;
 
 
-    _spi->write(Si4432_FREQUENCY_BAND_SELECT, fbsel);
-    _spi->write(Si4432_NOMINAL_CARRIER_FREQUENCY_1, fc >> 8);
-    _spi->write(Si4432_NOMINAL_CARRIER_FREQUENCY_0, fc & 0xff);
+	_spi->write(Si4432_FREQUENCY_BAND_SELECT, fbsel);
+	_spi->write(Si4432_NOMINAL_CARRIER_FREQUENCY_1, fc >> 8);
+	_spi->write(Si4432_NOMINAL_CARRIER_FREQUENCY_0, fc & 0xff);
 
-    return setAFCLimiter(center, afcPullInRange);
+	return setAFCLimiter(center, afcPullInRange);
 }
 
 void Si4432_Transceiver::setTxPower(uint8_t power) {
@@ -223,30 +223,30 @@ void Si4432_Transceiver::setTxPower(uint8_t power) {
 }
 
 void Si4432_Transceiver::startInterruptHandler() {
-    _spi->write(Si4432_INTERRUPT_ENABLE_1, INT_ENTXFFAEM | INT_ENRXFFAFULL | INT_ENPKSENT | INT_ENPKVALID | INT_ENCRCERROR | INT_ENFFERR);
-    _spi->write(Si4432_INTERRUPT_ENABLE_2, INT_ENPREAVAL);
+	_spi->write(Si4432_INTERRUPT_ENABLE_1, INT_ENTXFFAEM | INT_ENRXFFAFULL | INT_ENPKSENT | INT_ENPKVALID | INT_ENCRCERROR | INT_ENFFERR);
+	_spi->write(Si4432_INTERRUPT_ENABLE_2, INT_ENPREAVAL);
 	attachInterrupt(_interruptNumber, interruptServiceRoutine, FALLING);
 }
 
 void Si4432_Transceiver::interruptServiceRoutine() {
-    if (_singleton != NULL) _singleton->isr();
+	if (_singleton != NULL) _singleton->isr();
 }
 
 void Si4432_Transceiver::isr() {
 	// "The nIRQ pin will remain low until the microcontroller reads the Interrupt Status
 	// Register(s) (Registers 03h–04h) containing the active Interrupt Status bit. The
 	// nIRQ output signal will then be reset until the next change in status is detected"
-    uint8_t status[2];
-    _spi->readBlock(Si4432_INTERRUPT_STATUS_1, status, 2);
+	uint8_t status[2];
+	_spi->readBlock(Si4432_INTERRUPT_STATUS_1, status, 2);
 
-    if (status[0] & INT_ICRCERROR)  { handleCrcError(); }
-    if (status[0] & INT_IPKVALID)   { handlePacketReceived(); }
-    if (status[0] & INT_IPKSENT)    { handlePacketSent(); }
-    if (status[0] & INT_IRXFFAFULL) { handleRxFifoAlmostFull(); }
-    if (status[0] & INT_ITXFFAEM)   { handleTxFifoAlmostEmpty(); }
-    if (status[0] & INT_IFFERR)     { handleFifoError(); }
+	if (status[0] & INT_ICRCERROR)  { handleCrcError(); }
+	if (status[0] & INT_IPKVALID)   { handlePacketReceived(); }
+	if (status[0] & INT_IPKSENT)    { handlePacketSent(); }
+	if (status[0] & INT_IRXFFAFULL) { handleRxFifoAlmostFull(); }
+	if (status[0] & INT_ITXFFAEM)   { handleTxFifoAlmostEmpty(); }
+	if (status[0] & INT_IFFERR)     { handleFifoError(); }
 
-    if (status[1] & INT_IPREAVAL)   { handlePreambleDetected(); }
+	if (status[1] & INT_IPREAVAL)   { handlePreambleDetected(); }
 }
 
 void Si4432_Transceiver::setOperatingMode(uint8_t mode) {
@@ -257,31 +257,31 @@ void Si4432_Transceiver::setOperatingMode(uint8_t mode) {
 }
 
 void Si4432_Transceiver::setStateIdle() {
-    if (_shadowState != IDLE) {
+	if (_shadowState != IDLE) {
 		setOperatingMode(OMFC_STANDBY_MODE);
 		_shadowState = IDLE;
-    }
+	}
 }
 
 void Si4432_Transceiver::setStateRX(boolean force) {
-    if (force || (_shadowState != RX)) {
+	if (force || (_shadowState != RX)) {
 		setOperatingMode(OMFC_RXON);
 		_shadowState = RX;
-    }
+	}
 }
 
 void Si4432_Transceiver::setStateTX(boolean force) {
-    if (force || (_shadowState != TX)) {
+	if (force || (_shadowState != TX)) {
 		setOperatingMode(OMFC_TXON);
 		_shadowState = TX;
-    }
+	}
 }
 
 void Si4432_Transceiver::resetRxState() {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
 		_rxBufLen = 0;
 		_rxMsgAvailable = false;
-    }
+	}
 }
 
 bool Si4432_Transceiver::waitReceive(uint16_t timeoutMs) {
@@ -296,12 +296,12 @@ bool Si4432_Transceiver::waitReceive(uint16_t timeoutMs) {
 }
 
 bool Si4432_Transceiver::hasReceivedMsg() {
-    if (!_rxMsgAvailable) {
+	if (!_rxMsgAvailable) {
 		if (_shadowState != TX) {
 			setStateRX();
 		}
-    }
-    return _rxMsgAvailable;
+	}
+	return _rxMsgAvailable;
 }
 
 bool Si4432_Transceiver::receiveMsg(uint8_t* buf, uint8_t* len) {
@@ -309,8 +309,8 @@ bool Si4432_Transceiver::receiveMsg(uint8_t* buf, uint8_t* len) {
 
 	cli();  // disable SPI interrupts
 
-    if (buf && len && hasReceivedMsg()) {
-    	ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+	if (buf && len && hasReceivedMsg()) {
+		ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
 			if (*len >= _rxBufLen) {
 				*len = _rxBufLen;
 				memcpy(buf, _rxBuf, *len);
@@ -322,49 +322,49 @@ bool Si4432_Transceiver::receiveMsg(uint8_t* buf, uint8_t* len) {
 			}
 			resetRxState();
 		}
-    }
+	}
 
-    sei();
+	sei();
 
-    return success;
+	return success;
 }
 
 void Si4432_Transceiver::startTX(boolean force) {
 	// load FIFO with 1st chunk of the message to be sent
 	// (transmission of remaining chunks - if any - will be triggered later via interrupt)
-    _txBufProgressIdx = 0;
+	_txBufProgressIdx = 0;
 	handleTxFifoAlmostEmpty();
 
-    _spi->write(Si4432_PACKET_LENGTH, _txBufLen);
+	_spi->write(Si4432_PACKET_LENGTH, _txBufLen);
 
-    setStateTX(force); // start transmitter
+	setStateTX(force); // start transmitter
 }
 
 bool Si4432_Transceiver::sendMsg(uint8_t destAddress, const uint8_t* data, uint8_t len) {
-    bool success = false;
+	bool success = false;
 
-    cli();  // disable SPI interrupts
+	cli();  // disable SPI interrupts
 
-    if (len  && (len <= MAX_SI4432_MSG_LEN) && waitMsgSent(READY_TO_SEND_TIMEOUT)) {
-        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        	_spi->write(Si4432_TRANSMIT_HEADER_3, destAddress);	// RadioHead specific address
+	if (len  && (len <= MAX_SI4432_MSG_LEN) && waitMsgSent(READY_TO_SEND_TIMEOUT)) {
+		ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+			_spi->write(Si4432_TRANSMIT_HEADER_3, destAddress);	// RadioHead specific address
 
-        	// note: three more header fields are available if needed (since I am using higher
-        	// level protocols for this stuff I don't really care about this header..)
+			// note: three more header fields are available if needed (since I am using higher
+			// level protocols for this stuff I don't really care about this header..)
 
-    		// load TX state
+			// load TX state
 			memcpy(_txBuf, data, len);
 			_txBufLen= len;
 
 			startTX();
 
 			success = true;
-        }
-    }
+		}
+	}
 
-    sei();
+	sei();
 
-    return success;
+	return success;
 }
 
 bool Si4432_Transceiver::waitMsgSent(uint16_t timeout) {
@@ -414,8 +414,8 @@ void Si4432_Transceiver::handleRxFifoAlmostFull() {
 			resetRxState();	// this should make enough space
 		}
 	}
-    _spi->readBlock(Si4432_FIFO_ACCESS, _rxBuf + _rxBufLen, len);
-    _rxBufLen += len;
+	_spi->readBlock(Si4432_FIFO_ACCESS, _rxBuf + _rxBufLen, len);
+	_rxBufLen += len;
 }
 
 void Si4432_Transceiver::handlePacketReceived() {
@@ -435,7 +435,7 @@ void Si4432_Transceiver::handlePacketReceived() {
 		// (the field is already used by the automatic message filtering - if enabled - and
 		// I don't care about it.. if you need the header, then you might want to add
 		// the respective code here..)
-//		uint8_t destAddr = _spi->read(Si4432_RECEIVED_HEADER_3);
+		//		uint8_t destAddr = _spi->read(Si4432_RECEIVED_HEADER_3);
 
 		_rxBufLen = msgLen;
 		_rxMsgAvailable = true;
@@ -455,14 +455,14 @@ void Si4432_Transceiver::handlePacketSent() {
 void Si4432_Transceiver::handleTxFifoAlmostEmpty() {
 	// fill transmitter FIFO with available message data.. if any
 
-    if (_txBufProgressIdx < _txBufLen) {
+	if (_txBufProgressIdx < _txBufLen) {
 		uint8_t len = _txBufLen - _txBufProgressIdx;
 		if (len > TX_AVAILABLE_SIZE) {
 			len = TX_AVAILABLE_SIZE;
 		}
 		_spi->writeBlock(Si4432_FIFO_ACCESS, _txBuf + _txBufProgressIdx, len);
 		_txBufProgressIdx += len;
-    }
+	}
 }
 
 void Si4432_Transceiver::handleFifoError() {
@@ -472,7 +472,7 @@ void Si4432_Transceiver::handleFifoError() {
 	clearRxTxFIFO(); // brute force
 
 	if (_shadowState == TX) {
-	    startTX(true);	// retransmit existing buffer
+		startTX(true);	// retransmit existing buffer
 	}
 }
 

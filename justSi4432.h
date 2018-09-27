@@ -109,153 +109,153 @@ public:
 	 *
 	 * Limitation: The current implementation supports use of exactly one instance - also see init().
 	 */
-    Si4432_Transceiver(uint8_t slaveSelectPin = SS, uint8_t interruptPin = 2);
+	Si4432_Transceiver(uint8_t slaveSelectPin = SS, uint8_t interruptPin = 2);
 
-    virtual ~Si4432_Transceiver() {}
+	virtual ~Si4432_Transceiver() {}
 
-    // ---------------- configuration --------------------
+	// ---------------- configuration --------------------
 
-    /**
-     * Initialization to be called from sketch's "setup()".
-     *
-     * Can only be used once.
-     *
-     * @param settings base Si4432 base configuration generated using Si443x-Register-Settings_RevB1.xls
+	/**
+	 * Initialization to be called from sketch's "setup()".
+	 *
+	 * Can only be used once.
+	 *
+	 * @param settings base Si4432 base configuration generated using Si443x-Register-Settings_RevB1.xls
 	 * @param address used for this device
 	 * @param addressCheck false means any messages are accepted
-     */
-    bool init(const RegisterSettings *config= 0, uint8_t address= 0xff, boolean addressCheck= true);
+	 */
+	bool init(const RegisterSettings *config= 0, uint8_t address= 0xff, boolean addressCheck= true);
 
-    /**
-     * This mimics the respective functionality from "RadioHead RF22".
-     *
-     * It overwrites respective settings made by setupRegisters() and its
-     * use should rather be avoided: The recommended approach is to always
-     * create the complete set of recommended register settings using "the Excel sheet"
-     * and not tinker with individual registers.
-     *
-     * It might be useful though in scenarios where the peer device is using RadioHead.
-     *
-     * @param center in MHz
-     * @param afcPullInRange e.g. 0.05 for 5%
-     */
-    bool setFrequency(float center, float afcPullInRange = 0.05);
+	/**
+	 * This mimics the respective functionality from "RadioHead RF22".
+	 *
+	 * It overwrites respective settings made by setupRegisters() and its
+	 * use should rather be avoided: The recommended approach is to always
+	 * create the complete set of recommended register settings using "the Excel sheet"
+	 * and not tinker with individual registers.
+	 *
+	 * It might be useful though in scenarios where the peer device is using RadioHead.
+	 *
+	 * @param center in MHz
+	 * @param afcPullInRange e.g. 0.05 for 5%
+	 */
+	bool setFrequency(float center, float afcPullInRange = 0.05);
 
-    /**
-     * Sets the power level used by the transmitter.
-     *
-     * Without a proper antenna range usually sucks, but unless you want to buy a real
-     * antenna you can still try to tinker with the transmission power. (Seriously, Who would
-     * buy a $1.50 transceiver to then buy a $100 antenna?)
-     *
-     * @param power see Si4432_TX_POWER constant section for options
-     */
-    void setTxPower(uint8_t power);
+	/**
+	 * Sets the power level used by the transmitter.
+	 *
+	 * Without a proper antenna range usually sucks, but unless you want to buy a real
+	 * antenna you can still try to tinker with the transmission power. (Seriously, Who would
+	 * buy a $1.50 transceiver to then buy a $100 antenna?)
+	 *
+	 * @param power see Si4432_TX_POWER constant section for options
+	 */
+	void setTxPower(uint8_t power);
 
-    // ---------------- receiver --------------------
+	// ---------------- receiver --------------------
 
 	/**
 	 * Checks if a message has been received.
 	 */
-    bool hasReceivedMsg();
+	bool hasReceivedMsg();
 
-    /**
-     * Waits for reception of a message.
-     *
-     * @param timeoutMs in milliseconds; 0 means indefinitely
-     */
-    bool waitReceive(uint16_t timeout);
+	/**
+	 * Waits for reception of a message.
+	 *
+	 * @param timeoutMs in milliseconds; 0 means indefinitely
+	 */
+	bool waitReceive(uint16_t timeout);
 
-    /**
-     * Polls for reception of message.
-     *
-     * @param len returns actual length in case of success, may return exceeded length in case of failure
-     * @return true If data was available/returned (completes reception cycle).
-     */
-    bool receiveMsg(uint8_t* buf, uint8_t* len);
+	/**
+	 * Polls for reception of message.
+	 *
+	 * @param len returns actual length in case of success, may return exceeded length in case of failure
+	 * @return true If data was available/returned (completes reception cycle).
+	 */
+	bool receiveMsg(uint8_t* buf, uint8_t* len);
 
 
-    // ---------------- transmitter --------------------
+	// ---------------- transmitter --------------------
 
-    /**
-     * Triggers the sending of a message.
-     *
-     * @param destAddress address of the targeted receiver
-     * @param data buffer containing the message
-     * @param len length of the message
-     */
-    bool sendMsg(uint8_t destAddress, const uint8_t* data, uint8_t len);
+	/**
+	 * Triggers the sending of a message.
+	 *
+	 * @param destAddress address of the targeted receiver
+	 * @param data buffer containing the message
+	 * @param len length of the message
+	 */
+	bool sendMsg(uint8_t destAddress, const uint8_t* data, uint8_t len);
 
-    /**
-     * Waits until previous "sendMsg" has completed.
-     */
-    bool waitMsgSent(uint16_t timeout);
-
-protected:
-    bool passAssertions();
-    void resetRegisters();	// Triggers software register reset on Si4432
-    void setupRegisters(const RegisterSettings *config, uint8_t address, boolean addressCheck);
-    boolean setAFCLimiter(float center, float pullInRange);
-
-    // --- interrupt handling
-    void startInterruptHandler();
-    static void interruptServiceRoutine();
-    void isr();	// actual interrupt service routine
-
-    void handleCrcError();
-    void handlePacketReceived();
-    void handlePacketSent();
-    void handleRxFifoAlmostFull();
-    void handleTxFifoAlmostEmpty();
-    void handleFifoError();
-    void handlePreambleDetected();
-
-    // --- Si4432-side-state handling
-    uint8_t getDeviceStatus();
-    void setOperatingMode(uint8_t mode);	// see modes in Si4432_OPERATING_MODE_FUNCTION_CONTROL_1 constant section
-    void clearRxTxFIFO();
-    void clearRxFIFO();
-
-    // --- internal state handling
-    void setStateIdle();
-    void setStateRX(boolean force= false);
-    void setStateTX(boolean force= false);
-
-    	// receiver
-    void resetRX();
-    void resetRxState();
-
-   		// transmitter
-    void startTX(boolean force= false);
+	/**
+	 * Waits until previous "sendMsg" has completed.
+	 */
+	bool waitMsgSent(uint16_t timeout);
 
 protected:
-    static Si4432_Transceiver *_singleton;
+	bool passAssertions();
+	void resetRegisters();	// Triggers software register reset on Si4432
+	void setupRegisters(const RegisterSettings *config, uint8_t address, boolean addressCheck);
+	boolean setAFCLimiter(float center, float pullInRange);
 
-    JustSPI *_spi;
-    uint8_t _interruptNumber;
+	// --- interrupt handling
+	void startInterruptHandler();
+	static void interruptServiceRoutine();
+	void isr();	// actual interrupt service routine
 
-    typedef enum {
+	void handleCrcError();
+	void handlePacketReceived();
+	void handlePacketSent();
+	void handleRxFifoAlmostFull();
+	void handleTxFifoAlmostEmpty();
+	void handleFifoError();
+	void handlePreambleDetected();
+
+	// --- Si4432-side-state handling
+	uint8_t getDeviceStatus();
+	void setOperatingMode(uint8_t mode);	// see modes in Si4432_OPERATING_MODE_FUNCTION_CONTROL_1 constant section
+	void clearRxTxFIFO();
+	void clearRxFIFO();
+
+	// --- internal state handling
+	void setStateIdle();
+	void setStateRX(boolean force= false);
+	void setStateTX(boolean force= false);
+
+	// receiver
+	void resetRX();
+	void resetRxState();
+
+	// transmitter
+	void startTX(boolean force= false);
+
+protected:
+	static Si4432_Transceiver *_singleton;
+
+	JustSPI *_spi;
+	uint8_t _interruptNumber;
+
+	typedef enum {
 //		SHUTDOWN,
 		IDLE,
 		TX,
 		RX,
-    } PrimaryState;
+	} PrimaryState;
 
-    volatile PrimaryState _shadowState;	// redundant to state on Si4432
+	volatile PrimaryState _shadowState;	// redundant to state on Si4432
 
-    uint8_t _address;
-    boolean _addressCheckEnabled;
+	uint8_t _address;
+	boolean _addressCheckEnabled;
 
-    	// receiver related state
+	// receiver related state
 	uint8_t _rxBuf[MAX_SI4432_MSG_LEN];
 	volatile uint8_t _rxBufLen;
-    volatile bool _rxMsgAvailable;
+	volatile bool _rxMsgAvailable;
 
 
 	// transmitter related state
 	uint8_t _txBuf[MAX_SI4432_MSG_LEN];
 	volatile uint8_t _txBufLen;
-    volatile uint8_t _txBufProgressIdx;	// start of data that still needs to be sent
+	volatile uint8_t _txBufProgressIdx;	// start of data that still needs to be sent
 };
 
 #endif 
